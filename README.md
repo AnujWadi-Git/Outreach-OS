@@ -101,6 +101,12 @@ Enable the Gmail API and request these scopes:
 
 The app stores OAuth tokens server-side through NextAuth's Prisma adapter. Draft creation and direct sending run only on the server.
 
+If Google shows `Error 401: invalid_client` or says the OAuth client was not
+found, the running app is missing real `GOOGLE_CLIENT_ID` /
+`GOOGLE_CLIENT_SECRET` values or the OAuth client was deleted in Google Cloud.
+Update `.env`, confirm the redirect URI exactly matches
+`http://localhost:3000/api/auth/callback/google`, then restart `npm run dev`.
+
 ## Deployment Notes
 
 Use a hosted Postgres provider such as Neon, Supabase, Railway, or Vercel Postgres. Set all env vars in Vercel, then run migrations/push from a trusted environment:

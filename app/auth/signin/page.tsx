@@ -8,7 +8,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { GoogleSignInButton } from "@/components/layout/google-sign-in-button";
-import { getCurrentUser, ownerEmail } from "@/lib/auth";
+import {
+  getCurrentUser,
+  googleOAuthConfigured,
+  ownerEmail,
+} from "@/lib/auth";
 
 export default async function SignInPage() {
   const user = await getCurrentUser();
@@ -25,6 +29,17 @@ export default async function SignInPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!googleOAuthConfigured ? (
+            <Alert variant="destructive">
+              <AlertTitle>Google OAuth is not configured</AlertTitle>
+              <AlertDescription>
+                Add real <code>GOOGLE_CLIENT_ID</code> and{" "}
+                <code>GOOGLE_CLIENT_SECRET</code> values to your local{" "}
+                <code>.env</code>, then restart the dev server. The current
+                Google 401 happened because the app was missing those values.
+              </AlertDescription>
+            </Alert>
+          ) : null}
           <Alert variant="warning">
             <AlertTitle>Google permission notice</AlertTitle>
             <AlertDescription>
@@ -34,7 +49,7 @@ export default async function SignInPage() {
               <strong>{ownerEmail}</strong>.
             </AlertDescription>
           </Alert>
-          <GoogleSignInButton />
+          <GoogleSignInButton disabled={!googleOAuthConfigured} />
         </CardContent>
       </Card>
     </main>

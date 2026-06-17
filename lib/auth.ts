@@ -14,6 +14,10 @@ export const ownerEmail = (
   process.env.OWNER_EMAIL || "awadi@asu.edu"
 ).toLowerCase();
 
+export const googleOAuthConfigured = Boolean(
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+);
+
 const gmailScopes = [
   "openid",
   "email",
@@ -32,21 +36,22 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/signin",
   },
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "missing-google-client-id",
-      clientSecret:
-        process.env.GOOGLE_CLIENT_SECRET || "missing-google-client-secret",
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-          scope: gmailScopes.join(" "),
-        },
-      },
-    }),
-  ],
+  providers: googleOAuthConfigured
+    ? [
+        GoogleProvider({
+          clientId: process.env.GOOGLE_CLIENT_ID!,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          authorization: {
+            params: {
+              prompt: "consent",
+              access_type: "offline",
+              response_type: "code",
+              scope: gmailScopes.join(" "),
+            },
+          },
+        }),
+      ]
+    : [],
   callbacks: {
     async signIn({ user, profile }) {
       const email = (user.email || profile?.email || "").toLowerCase();
