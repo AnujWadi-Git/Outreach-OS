@@ -64,6 +64,13 @@ OPENAI_MODEL="gpt-4.1-mini"
 4. Create/update the database:
 
 ```bash
+npm run db:local
+```
+
+Keep that local database process running in one terminal. In another terminal,
+create/update the schema:
+
+```bash
 npm run db:push
 ```
 
@@ -136,6 +143,7 @@ Uploaded resumes are stored at `storage/resumes` for local development and self-
 npm run lint
 npm run build
 npm run db:generate
+npm run db:local
 npm run db:push
 npm run db:seed
 npm run db:studio
