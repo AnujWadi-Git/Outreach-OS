@@ -1,0 +1,287 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+}
+
+enum CampaignMode {
+  DRAFT
+  SEND
+  DRY_RUN
+}
+
+enum CampaignStatus {
+  NEW
+  PARSED
+  ANALYZED
+  GENERATED
+  DRAFTING
+  DRAFTED
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}
+
+enum ContactStatus {
+  PARSED
+  NEEDS_REVIEW
+  GENERATED
+  DRAFT_CREATED
+  SCHEDULED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum DraftStatus {
+  GENERATED
+  DRAFT_CREATED
+  SCHEDULED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum DeliveryAction {
+  CREATE_DRAFT
+  SEND
+  RESYNC
+  RETRY
+}
+
+enum DeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum GenerationStatus {
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(OWNER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  resumes   Resume[]
+  campaigns Campaign[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Resume {
+  id          String   @id @default(cuid())
+  userId      String
+  fileName    String
+  storagePath String
+  mimeType    String   @default("application/pdf")
+  size        Int
+  sha256      String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+  drafts    Draft[]
+
+  @@index([userId, isDefault])
+}
+
+model Campaign {
+  id                String         @id @default(cuid())
+  userId            String
+  resumeId          String?
+  name              String
+  mode              CampaignMode   @default(DRAFT)
+  status            CampaignStatus @default(NEW)
+  rawJobDescription String         @db.Text
+  rawContacts       String         @db.Text
+  parsedContacts    Json?
+  generatedContent  Json?
+  successCount      Int            @default(0)
+  failureCount      Int            @default(0)
+  lastError         String?        @db.Text
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume         Resume?          @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  jobDescription JobDescription?
+  contacts       Contact[]
+  drafts         Draft[]
+  generationLogs GenerationLog[]
+  deliveryLogs   DeliveryLog[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model Contact {
+  id             String        @id @default(cuid())
+  campaignId     String
+  fullName       String?
+  email          String?
+  title          String?
+  company        String?
+  sourceText     String        @db.Text
+  confidence     Float         @default(0)
+  isValid        Boolean       @default(false)
+  validityReason String?
+  status         ContactStatus @default(PARSED)
+  parsedData     Json?
+  generatedContent Json?
+  selectedSubject String?
+  gmailDraftId   String?
+  gmailMessageId String?
+  lastError      String?       @db.Text
+  attemptCount   Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  campaign       Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  draft          Draft?
+  generationLogs GenerationLog[]
+  deliveryLogs   DeliveryLog[]
+
+  @@unique([campaignId, email])
+  @@index([campaignId, status])
+}
+
+model JobDescription {
+  id          String   @id @default(cuid())
+  campaignId  String   @unique
+  rawText     String   @db.Text
+  companyName String?
+  roleType    String?
+  seniority   String?
+  analysis    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model Draft {
+  id             String      @id @default(cuid())
+  campaignId     String
+  contactId      String      @unique
+  resumeId       String?
+  recipient      String
+  subjectOptions Json
+  selectedSubject String
+  body           String      @db.Text
+  followUp       String      @db.Text
+  hookSummary    String      @db.Text
+  confidence     Float       @default(0)
+  reasons        Json?
+  status         DraftStatus @default(GENERATED)
+  gmailDraftId   String?
+  gmailMessageId String?
+  mimeHash       String?
+  generatedAt    DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact      Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  resume       Resume?       @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  deliveryLogs DeliveryLog[]
+
+  @@index([campaignId, status])
+  @@index([gmailDraftId])
+}
+
+model GenerationLog {
+  id         String           @id @default(cuid())
+  campaignId String
+  contactId  String?
+  provider   String           @default("openai")
+  model      String
+  promptHash String?
+  input      Json
+  output     Json?
+  status     GenerationStatus
+  error      String?          @db.Text
+  tokens     Int?
+  latencyMs  Int?
+  createdAt  DateTime         @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, createdAt])
+}
+
+model DeliveryLog {
+  id              String         @id @default(cuid())
+  campaignId      String
+  contactId       String?
+  draftId         String?
+  action          DeliveryAction
+  status          DeliveryStatus @default(PENDING)
+  providerRequestId String?
+  gmailDraftId    String?
+  gmailMessageId  String?
+  error           String?        @db.Text
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  draft    Draft?   @relation(fields: [draftId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, createdAt])
+  @@index([status])
+}

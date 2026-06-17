@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 24% 97%;
+    --foreground: 216 31% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 216 31% 15%;
+    --primary: 184 72% 27%;
+    --primary-foreground: 180 18% 98%;
+    --secondary: 220 18% 92%;
+    --secondary-foreground: 216 31% 18%;
+    --muted: 215 21% 93%;
+    --muted-foreground: 216 13% 43%;
+    --accent: 38 92% 55%;
+    --accent-foreground: 30 35% 15%;
+    --destructive: 2 71% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 154 61% 31%;
+    --success-foreground: 0 0% 100%;
+    --border: 214 19% 85%;
+    --input: 214 19% 85%;
+    --ring: 184 72% 27%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply bg-background;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::selection {
+    @apply bg-primary text-primary-foreground;
+  }
+}
+
+@layer components {
+  .tool-shell {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.88),
+      rgba(246, 248, 250, 0.96)
+    );
+  }
+}
