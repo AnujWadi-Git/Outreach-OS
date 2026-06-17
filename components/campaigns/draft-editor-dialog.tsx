@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { Pencil } from "lucide-react";
 import { updateDraftAction, type ActionState } from "@/app/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,7 +32,7 @@ type DraftEditorProps = {
 const initialState: ActionState = { status: "idle" };
 
 export function DraftEditorDialog({ draft }: DraftEditorProps) {
-  const [state, formAction] = useFormState(updateDraftAction, initialState);
+  const [state, formAction] = useActionState(updateDraftAction, initialState);
 
   return (
     <Dialog>

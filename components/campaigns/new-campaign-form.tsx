@@ -1,8 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  useActionState,
+  useMemo,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { Clipboard, Loader2, Mail, Send, TestTube2 } from "lucide-react";
-import { useFormState } from "react-dom";
 import { createCampaignAction, type ActionState } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +95,10 @@ function ModeOption({
 }
 
 export function NewCampaignForm({ resumes }: { resumes: ResumeOption[] }) {
-  const [state, formAction] = useFormState(createCampaignAction, initialState);
+  const [state, formAction] = useActionState(
+    createCampaignAction,
+    initialState
+  );
   const [rawContacts, setRawContacts] = useState("");
   const [preview, setPreview] = useState<ParsePreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);

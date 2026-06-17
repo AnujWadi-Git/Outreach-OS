@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { FileText } from "lucide-react";
 import { uploadResumeAction, type ActionState } from "@/app/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -31,7 +31,10 @@ function formatSize(bytes: number) {
 }
 
 export function ResumePanel({ resumes }: { resumes: ResumeItem[] }) {
-  const [state, formAction] = useFormState(uploadResumeAction, initialState);
+  const [state, formAction] = useActionState(
+    uploadResumeAction,
+    initialState
+  );
   const defaultResume = resumes.find((resume) => resume.isDefault);
 
   return (

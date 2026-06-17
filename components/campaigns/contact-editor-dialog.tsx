@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { Pencil } from "lucide-react";
 import { updateContactAction, type ActionState } from "@/app/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,7 +32,10 @@ type ContactEditorProps = {
 const initialState: ActionState = { status: "idle" };
 
 export function ContactEditorDialog({ contact }: ContactEditorProps) {
-  const [state, formAction] = useFormState(updateContactAction, initialState);
+  const [state, formAction] = useActionState(
+    updateContactAction,
+    initialState
+  );
 
   return (
     <Dialog>
