@@ -15,7 +15,7 @@ export const ownerEmail = (
   process.env.OWNER_EMAIL || "awadi@asu.edu"
 ).toLowerCase();
 
-export const googleOAuthEnabled = process.env.GOOGLE_AUTH_ENABLED !== "false";
+export const googleOAuthEnabled = process.env.GOOGLE_AUTH_ENABLED === "true";
 
 export const googleOAuthCredentialsPresent = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
