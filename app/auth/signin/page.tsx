@@ -12,6 +12,8 @@ import { LocalSignInButton } from "@/components/layout/local-sign-in-button";
 import {
   getCurrentUser,
   googleOAuthConfigured,
+  googleOAuthCredentialsPresent,
+  googleOAuthEnabled,
   localAuthEnabled,
   ownerEmail,
 } from "@/lib/auth";
@@ -31,7 +33,7 @@ export default async function SignInPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!googleOAuthConfigured ? (
+          {!googleOAuthCredentialsPresent ? (
             <Alert variant="destructive">
               <AlertTitle>Google OAuth is not configured</AlertTitle>
               <AlertDescription>
@@ -39,6 +41,16 @@ export default async function SignInPage() {
                 <code>GOOGLE_CLIENT_SECRET</code> values to your local{" "}
                 <code>.env</code>, then restart the dev server. The current
                 Google 401 happened because the app was missing those values.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {googleOAuthCredentialsPresent && !googleOAuthEnabled ? (
+            <Alert variant="warning">
+              <AlertTitle>Google OAuth is disabled locally</AlertTitle>
+              <AlertDescription>
+                Continue locally while the Google Cloud OAuth client is being
+                fixed. Set <code>GOOGLE_AUTH_ENABLED=true</code> after creating
+                a valid client.
               </AlertDescription>
             </Alert>
           ) : null}

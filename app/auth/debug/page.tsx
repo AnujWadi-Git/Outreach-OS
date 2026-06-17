@@ -8,7 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { googleOAuthConfigured, ownerEmail } from "@/lib/auth";
+import {
+  googleOAuthConfigured,
+  googleOAuthCredentialsPresent,
+  googleOAuthEnabled,
+  ownerEmail,
+} from "@/lib/auth";
 
 function maskSecret(value: string | undefined) {
   if (!value) return "Missing";
@@ -32,7 +37,7 @@ export default function AuthDebugPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!googleOAuthConfigured ? (
+          {!googleOAuthCredentialsPresent ? (
             <Alert variant="destructive">
               <AlertTitle>Google OAuth is incomplete</AlertTitle>
               <AlertDescription>
@@ -41,11 +46,26 @@ export default function AuthDebugPage() {
               </AlertDescription>
             </Alert>
           ) : null}
+          {googleOAuthCredentialsPresent && !googleOAuthEnabled ? (
+            <Alert variant="warning">
+              <AlertTitle>Google OAuth is disabled</AlertTitle>
+              <AlertDescription>
+                GOOGLE_AUTH_ENABLED is false. Set it to true after creating a
+                valid Google OAuth client, then restart the dev server.
+              </AlertDescription>
+            </Alert>
+          ) : null}
           <div className="space-y-3 rounded-lg border bg-background p-4 text-sm">
             <div>
               <p className="font-medium">Configured</p>
               <p className="text-muted-foreground">
                 {googleOAuthConfigured ? "Yes" : "No"}
+              </p>
+            </div>
+            <div>
+              <p className="font-medium">GOOGLE_AUTH_ENABLED</p>
+              <p className="text-muted-foreground">
+                {googleOAuthEnabled ? "true" : "false"}
               </p>
             </div>
             <div>
