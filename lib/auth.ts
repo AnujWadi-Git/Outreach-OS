@@ -24,6 +24,8 @@ export const localAuthEnabled =
   (process.env.NODE_ENV !== "production" &&
     process.env.LOCAL_AUTH_ENABLED !== "false");
 
+const localOwnerSessionId = "local-owner";
+
 const gmailScopes = [
   "openid",
   "email",
@@ -57,20 +59,10 @@ const providers: NextAuthOptions["providers"] = [
           name: "Local owner",
           credentials: {},
           async authorize() {
-            const user = await prisma.user.upsert({
-              where: { email: ownerEmail },
-              update: { name: "Anuj Wadi", role: "OWNER" },
-              create: {
-                email: ownerEmail,
-                name: "Anuj Wadi",
-                role: "OWNER",
-              },
-            });
-
             return {
-              id: user.id,
-              email: user.email,
-              name: user.name,
+              id: localOwnerSessionId,
+              email: ownerEmail,
+              name: "Anuj Wadi",
             };
           },
         }),
@@ -119,9 +111,23 @@ export async function getCurrentUser() {
     return null;
   }
 
-  return prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
+  if (session.user.id === localOwnerSessionId) {
+    const user = await prisma.user.findUnique({
+      where: { email: ownerEmail },
+    });
+
+    if (user) return user;
+
+    return prisma.user.create({
+      data: {
+        email: ownerEmail,
+        name: "Anuj Wadi",
+        role: "OWNER",
+      },
+    });
+  }
+
+  return prisma.user.findUnique({ where: { id: session.user.id } });
 }
 
 export async function requireUser() {

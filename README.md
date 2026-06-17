@@ -64,11 +64,11 @@ OPENAI_MODEL="gpt-4.1-mini"
 4. Create/update the database:
 
 ```bash
-npm run db:local
+npm run dev
 ```
 
-Keep that local database process running in one terminal. In another terminal,
-create/update the schema:
+This starts both the local Postgres-compatible development database and the
+Next.js app. In another terminal, create/update the schema:
 
 ```bash
 npm run db:push
