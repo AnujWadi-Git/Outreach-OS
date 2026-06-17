@@ -1,5 +1,6 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { getServerSession, type NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 
@@ -18,6 +19,11 @@ export const googleOAuthConfigured = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
 );
 
+export const localAuthEnabled =
+  process.env.LOCAL_AUTH_ENABLED === "true" ||
+  (process.env.NODE_ENV !== "production" &&
+    process.env.LOCAL_AUTH_ENABLED !== "false");
+
 const gmailScopes = [
   "openid",
   "email",
@@ -27,16 +33,8 @@ const gmailScopes = [
   "https://www.googleapis.com/auth/gmail.modify",
 ];
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  session: {
-    strategy: "database",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    signIn: "/auth/signin",
-  },
-  providers: googleOAuthConfigured
+const providers: NextAuthOptions["providers"] = [
+  ...(googleOAuthConfigured
     ? [
         GoogleProvider({
           clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -51,15 +49,60 @@ export const authOptions: NextAuthOptions = {
           },
         }),
       ]
-    : [],
+    : []),
+  ...(localAuthEnabled
+    ? [
+        CredentialsProvider({
+          id: "local-owner",
+          name: "Local owner",
+          credentials: {},
+          async authorize() {
+            const user = await prisma.user.upsert({
+              where: { email: ownerEmail },
+              update: { name: "Anuj Wadi", role: "OWNER" },
+              create: {
+                email: ownerEmail,
+                name: "Anuj Wadi",
+                role: "OWNER",
+              },
+            });
+
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+            };
+          },
+        }),
+      ]
+    : []),
+];
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "jwt",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: "/auth/signin",
+  },
+  providers,
   callbacks: {
     async signIn({ user, profile }) {
       const email = (user.email || profile?.email || "").toLowerCase();
       return email === ownerEmail;
     },
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.sub = user.id;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = token.sub || "";
         session.user.role = "OWNER";
       }
 

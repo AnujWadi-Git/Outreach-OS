@@ -54,6 +54,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/outreach_os?schema=p
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate-a-long-secret"
 OWNER_EMAIL="awadi@asu.edu"
+LOCAL_AUTH_ENABLED="true"
 GOOGLE_CLIENT_ID="..."
 GOOGLE_CLIENT_SECRET="..."
 OPENAI_API_KEY="..."
@@ -106,6 +107,9 @@ found, the running app is missing real `GOOGLE_CLIENT_ID` /
 `GOOGLE_CLIENT_SECRET` values or the OAuth client was deleted in Google Cloud.
 Update `.env`, confirm the redirect URI exactly matches
 `http://localhost:3000/api/auth/callback/google`, then restart `npm run dev`.
+For local development, `LOCAL_AUTH_ENABLED=true` also enables a local owner
+login so you can use campaign parsing and generation while fixing Google Cloud.
+Gmail draft/send actions still require completing Google OAuth.
 
 ## Deployment Notes
 

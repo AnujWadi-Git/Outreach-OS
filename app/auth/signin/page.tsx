@@ -8,9 +8,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { GoogleSignInButton } from "@/components/layout/google-sign-in-button";
+import { LocalSignInButton } from "@/components/layout/local-sign-in-button";
 import {
   getCurrentUser,
   googleOAuthConfigured,
+  localAuthEnabled,
   ownerEmail,
 } from "@/lib/auth";
 
@@ -49,7 +51,20 @@ export default async function SignInPage() {
               <strong>{ownerEmail}</strong>.
             </AlertDescription>
           </Alert>
-          <GoogleSignInButton disabled={!googleOAuthConfigured} />
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <GoogleSignInButton disabled={!googleOAuthConfigured} />
+            {localAuthEnabled ? <LocalSignInButton /> : null}
+          </div>
+          {localAuthEnabled ? (
+            <Alert>
+              <AlertTitle>Local login available</AlertTitle>
+              <AlertDescription>
+                Use local login to build campaigns while Google rejects the
+                OAuth client. Gmail draft/send actions will remain unavailable
+                until you complete Google sign-in.
+              </AlertDescription>
+            </Alert>
+          ) : null}
         </CardContent>
       </Card>
     </main>
