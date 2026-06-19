@@ -4,6 +4,7 @@ import type { User } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/layout/sign-out-button";
+import { authBypassEnabled } from "@/lib/auth";
 
 export function AppShell({
   user,
@@ -34,6 +35,9 @@ export function AppShell({
             </Link>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {authBypassEnabled ? (
+              <Badge variant="secondary">Open access mode</Badge>
+            ) : null}
             <Badge variant={gmailConnected ? "success" : "warning"}>
               <ShieldCheck className="mr-1 size-3" />
               {gmailConnected ? "Gmail connected" : "Gmail needs consent"}
@@ -45,7 +49,7 @@ export function AppShell({
                 New campaign
               </Link>
             </Button>
-            <SignOutButton />
+            {!authBypassEnabled ? <SignOutButton /> : null}
           </div>
         </div>
       </header>

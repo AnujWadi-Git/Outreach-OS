@@ -15,6 +15,8 @@ export const ownerEmail = (
   process.env.OWNER_EMAIL || "awadi@asu.edu"
 ).toLowerCase();
 
+export const authBypassEnabled = process.env.AUTH_BYPASS_ENABLED !== "false";
+
 export const googleOAuthEnabled = process.env.GOOGLE_AUTH_ENABLED === "true";
 
 export const googleOAuthCredentialsPresent = Boolean(
@@ -75,6 +77,21 @@ const providers: NextAuthOptions["providers"] = [
     : []),
 ];
 
+async function getOrCreateOwnerUser() {
+  return prisma.user.upsert({
+    where: { email: ownerEmail },
+    update: {
+      name: "Anuj Wadi",
+      role: "OWNER",
+    },
+    create: {
+      email: ownerEmail,
+      name: "Anuj Wadi",
+      role: "OWNER",
+    },
+  });
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
@@ -109,6 +126,10 @@ export const authOptions: NextAuthOptions = {
 };
 
 export async function getCurrentUser() {
+  if (authBypassEnabled) {
+    return getOrCreateOwnerUser();
+  }
+
   const session = await getServerSession(authOptions);
   const email = session?.user?.email?.toLowerCase();
 
@@ -117,19 +138,7 @@ export async function getCurrentUser() {
   }
 
   if (session.user.id === localOwnerSessionId) {
-    const user = await prisma.user.findUnique({
-      where: { email: ownerEmail },
-    });
-
-    if (user) return user;
-
-    return prisma.user.create({
-      data: {
-        email: ownerEmail,
-        name: "Anuj Wadi",
-        role: "OWNER",
-      },
-    });
+    return getOrCreateOwnerUser();
   }
 
   return prisma.user.findUnique({ where: { id: session.user.id } });

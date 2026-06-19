@@ -11,7 +11,11 @@ import {
   type CampaignHistoryItem,
 } from "@/components/campaigns/campaign-history";
 import { ResumePanel } from "@/components/campaigns/resume-panel";
-import { getCurrentUser, getGmailConnection } from "@/lib/auth";
+import {
+  authBypassEnabled,
+  getCurrentUser,
+  getGmailConnection,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -113,11 +117,15 @@ export default async function DashboardPage() {
         {!gmailConnected ? (
           <Alert variant="warning">
             <AlertTriangle className="size-4" />
-            <AlertTitle>Gmail is not fully connected</AlertTitle>
+            <AlertTitle>
+              {authBypassEnabled
+                ? "Gmail is paused for this open build"
+                : "Gmail is not fully connected"}
+            </AlertTitle>
             <AlertDescription>
-              Sign in with Google and grant Gmail compose/send access before
-              creating drafts or sending. You can still create dry-run campaigns
-              and generate outreach.
+              {authBypassEnabled
+                ? "Login is skipped for now, so campaigns run in dry-run mode. You can still parse contacts, analyze jobs, generate outreach, edit, copy, and export."
+                : "Sign in with Google and grant Gmail compose/send access before creating drafts or sending. You can still create dry-run campaigns and generate outreach."}
             </AlertDescription>
           </Alert>
         ) : null}

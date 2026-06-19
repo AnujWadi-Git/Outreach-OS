@@ -119,6 +119,7 @@ export default async function CampaignDetailPage({
       ? Math.round((completedContacts.length / validContacts.length) * 100)
       : 0;
   const analysis = campaign.jobDescription?.analysis;
+  const gmailConnected = Boolean(gmailConnection?.refresh_token);
   const draftPreviews: DraftPreview[] = campaign.drafts.map((draft) => ({
     id: draft.id,
     recipient: draft.recipient,
@@ -137,7 +138,7 @@ export default async function CampaignDetailPage({
   return (
     <AppShell
       user={user}
-      gmailConnected={Boolean(gmailConnection?.refresh_token)}
+      gmailConnected={gmailConnected}
     >
       <div className="space-y-6">
         <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -197,6 +198,7 @@ export default async function CampaignDetailPage({
           mode={campaign.mode}
           hasDrafts={campaign.drafts.length > 0}
           hasResume={Boolean(campaign.resume)}
+          gmailConnected={gmailConnected}
         />
 
         <section className="grid gap-6 lg:grid-cols-2">

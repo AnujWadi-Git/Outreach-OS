@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/campaigns/status-badge";
+import { cn } from "@/lib/utils";
 
 type ResumeOption = {
   id: string;
@@ -65,20 +66,28 @@ function ModeOption({
   description,
   icon,
   defaultChecked,
+  disabled,
 }: {
   value: string;
   title: string;
   description: string;
   icon: ReactNode;
   defaultChecked?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <label className="group relative cursor-pointer">
+    <label
+      className={cn(
+        "group relative cursor-pointer",
+        disabled && "cursor-not-allowed opacity-60"
+      )}
+    >
       <input
         type="radio"
         name="mode"
         value={value}
         defaultChecked={defaultChecked}
+        disabled={disabled}
         className="peer sr-only"
       />
       <span className="flex min-h-24 flex-col gap-2 rounded-lg border bg-card p-3 transition-colors peer-checked:border-primary peer-checked:bg-primary/5">
@@ -94,7 +103,13 @@ function ModeOption({
   );
 }
 
-export function NewCampaignForm({ resumes }: { resumes: ResumeOption[] }) {
+export function NewCampaignForm({
+  resumes,
+  gmailConnected,
+}: {
+  resumes: ResumeOption[];
+  gmailConnected: boolean;
+}) {
   const [state, formAction] = useActionState(
     createCampaignAction,
     initialState
@@ -244,21 +259,32 @@ export function NewCampaignForm({ resumes }: { resumes: ResumeOption[] }) {
               <ModeOption
                 value="DRAFT"
                 title="Draft"
-                description="Create Gmail drafts for review. Default and safest."
+                description={
+                  gmailConnected
+                    ? "Create Gmail drafts for review. Default and safest."
+                    : "Requires Google OAuth. Use dry run for now."
+                }
                 icon={<Mail className="size-4 text-primary" />}
-                defaultChecked
+                defaultChecked={gmailConnected}
+                disabled={!gmailConnected}
               />
               <ModeOption
                 value="DRY_RUN"
                 title="Dry run"
                 description="Generate everything without touching Gmail."
                 icon={<TestTube2 className="size-4 text-amber-700" />}
+                defaultChecked={!gmailConnected}
               />
               <ModeOption
                 value="SEND"
                 title="Send"
-                description="Enable direct send workflow after explicit confirmation."
+                description={
+                  gmailConnected
+                    ? "Enable direct send workflow after explicit confirmation."
+                    : "Requires Google OAuth and explicit confirmation later."
+                }
                 icon={<Send className="size-4 text-destructive" />}
+                disabled={!gmailConnected}
               />
             </div>
             <Alert variant="warning">

@@ -16,14 +16,26 @@ export function CampaignActions({
   mode,
   hasDrafts,
   hasResume,
+  gmailConnected,
 }: {
   campaignId: string;
   mode: string;
   hasDrafts: boolean;
   hasResume: boolean;
+  gmailConnected: boolean;
 }) {
   return (
     <div className="space-y-4">
+      {!gmailConnected ? (
+        <Alert variant="warning">
+          <AlertTitle>Gmail actions are paused</AlertTitle>
+          <AlertDescription>
+            Login is skipped for now. You can keep regenerating, editing,
+            copying, and exporting outreach here; Gmail draft/send/resync will
+            unlock after Google OAuth is connected.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {!hasResume ? (
         <Alert variant="warning">
           <AlertTitle>No resume selected</AlertTitle>
@@ -55,7 +67,7 @@ export function CampaignActions({
           <SubmitButton
             variant="default"
             pendingLabel="Creating drafts"
-            disabled={!hasDrafts}
+            disabled={!hasDrafts || !gmailConnected}
           >
             <RotateCw />
             Create Gmail drafts
@@ -63,7 +75,11 @@ export function CampaignActions({
         </form>
         <form action={resyncCampaignAction}>
           <input type="hidden" name="campaignId" value={campaignId} />
-          <SubmitButton variant="outline" pendingLabel="Resyncing">
+          <SubmitButton
+            variant="outline"
+            pendingLabel="Resyncing"
+            disabled={!gmailConnected}
+          >
             <RefreshCcw />
             Re-sync Gmail
           </SubmitButton>
@@ -100,7 +116,7 @@ export function CampaignActions({
         <SubmitButton
           variant="destructive"
           pendingLabel="Sending"
-          disabled={!hasDrafts}
+          disabled={!hasDrafts || !gmailConnected}
         >
           <Send />
           Send emails

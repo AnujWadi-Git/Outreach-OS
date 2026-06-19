@@ -51,6 +51,7 @@ cp .env.example .env
 
 ```bash
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/outreach_os?schema=public"
+AUTH_BYPASS_ENABLED="true"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate-a-long-secret"
 OWNER_EMAIL="awadi@asu.edu"
@@ -90,6 +91,11 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 ## Google OAuth / Gmail
+
+The current public build can skip login with `AUTH_BYPASS_ENABLED=true`. In this
+mode, Outreach OS creates/uses the owner account automatically, defaults new
+campaigns to dry run, and disables Gmail draft/send/resync buttons until Google
+OAuth is connected.
 
 Create a Google OAuth client in Google Cloud Console:
 

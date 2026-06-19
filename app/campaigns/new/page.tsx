@@ -20,8 +20,10 @@ export default async function NewCampaignPage() {
     getGmailConnection(user.id),
   ]);
 
+  const gmailConnected = Boolean(gmailConnection?.refresh_token);
+
   return (
-    <AppShell user={user} gmailConnected={Boolean(gmailConnection?.refresh_token)}>
+    <AppShell user={user} gmailConnected={gmailConnected}>
       <div className="space-y-6">
         <div>
           <p className="text-sm font-medium uppercase text-muted-foreground">
@@ -34,7 +36,7 @@ export default async function NewCampaignPage() {
             from the review page.
           </p>
         </div>
-        <NewCampaignForm resumes={resumes} />
+        <NewCampaignForm resumes={resumes} gmailConnected={gmailConnected} />
       </div>
     </AppShell>
   );
