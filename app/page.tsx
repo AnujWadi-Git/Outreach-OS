@@ -1,11 +1,12 @@
 import Link from "next/link";
+import type { Campaign, ContactStatus, Resume, User } from "@prisma/client";
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 import { AlertTriangle, CheckCircle2, FileText, MailPlus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AppShell } from "@/components/layout/app-shell";
+import { StandaloneOutreachTool } from "@/components/campaigns/standalone-outreach-tool";
 import {
   CampaignHistory,
   type CampaignHistoryItem,
@@ -19,6 +20,17 @@ import {
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+
+function standaloneReason(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : "The backend is not available.";
+
+  if (/database|prisma|postgres|connect|DATABASE_URL/i.test(message)) {
+    return "The database backend is not available on this deployment, so Outreach OS is running as a no-login frontend tool. Campaigns are saved in this browser until Postgres is connected.";
+  }
+
+  return "The backend is not available on this deployment, so Outreach OS is running as a no-login frontend tool. Campaigns are saved in this browser for now.";
+}
 
 function StatCard({
   label,
@@ -44,41 +56,93 @@ function StatCard({
   );
 }
 
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
+type DashboardData =
+  | {
+      status: "standalone";
+      reason: string;
+    }
+  | {
+      status: "ready";
+      user: User;
+      gmailConnected: boolean;
+      campaigns: Array<Campaign & { _count: { contacts: number; drafts: number } }>;
+      resumes: Resume[];
+      totals: Array<{ status: ContactStatus; _count: { status: number } }>;
+    };
 
-  if (!user) redirect("/auth/signin");
+async function loadDashboardData(): Promise<DashboardData> {
+  if (process.env.STANDALONE_FRONTEND_ONLY === "true" || !process.env.DATABASE_URL) {
+    return {
+      status: "standalone",
+      reason:
+        "Outreach OS is running as a no-login frontend tool. Campaigns are saved in this browser until the backend is connected.",
+    };
+  }
 
-  const [campaigns, resumes, gmailConnection, totals] = await Promise.all([
-    prisma.campaign.findMany({
-      where: { userId: user.id },
-      include: {
-        _count: {
-          select: { contacts: true, drafts: true },
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return {
+        status: "standalone",
+        reason:
+          "Login is skipped for this build, so Outreach OS is running as a frontend tool.",
+      };
+    }
+
+    const [campaigns, resumes, gmailConnection, totals] = await Promise.all([
+      prisma.campaign.findMany({
+        where: { userId: user.id },
+        include: {
+          _count: {
+            select: { contacts: true, drafts: true },
+          },
         },
-      },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.resume.findMany({
-      where: { userId: user.id },
-      orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }],
-    }),
-    getGmailConnection(user.id),
-    prisma.contact.groupBy({
-      by: ["status"],
-      where: { campaign: { userId: user.id } },
-      _count: { status: true },
-    }),
-  ]);
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.resume.findMany({
+        where: { userId: user.id },
+        orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }],
+      }),
+      getGmailConnection(user.id),
+      prisma.contact.groupBy({
+        by: ["status"],
+        where: { campaign: { userId: user.id } },
+        _count: { status: true },
+      }),
+    ]);
 
-  const failureCount = totals
+    return {
+      status: "ready",
+      user,
+      gmailConnected: Boolean(gmailConnection?.refresh_token),
+      campaigns,
+      resumes,
+      totals,
+    };
+  } catch (error) {
+    return {
+      status: "standalone",
+      reason: standaloneReason(error),
+    };
+  }
+}
+
+export default async function DashboardPage() {
+  const data = await loadDashboardData();
+
+  if (data.status === "standalone") {
+    return <StandaloneOutreachTool reason={data.reason} />;
+  }
+
+  const failureCount = data.totals
     .filter((item) => item.status === "FAILED")
     .reduce((sum, item) => sum + item._count.status, 0);
-  const sentCount = totals
+  const sentCount = data.totals
     .filter((item) => item.status === "SENT")
     .reduce((sum, item) => sum + item._count.status, 0);
 
-  const history: CampaignHistoryItem[] = campaigns.map((campaign) => ({
+  const history: CampaignHistoryItem[] = data.campaigns.map((campaign) => ({
     id: campaign.id,
     name: campaign.name,
     mode: campaign.mode,
@@ -90,10 +154,8 @@ export default async function DashboardPage() {
     failures: campaign.failureCount,
   }));
 
-  const gmailConnected = Boolean(gmailConnection?.refresh_token);
-
   return (
-    <AppShell user={user} gmailConnected={gmailConnected}>
+    <AppShell user={data.user} gmailConnected={data.gmailConnected}>
       <div className="space-y-6">
         <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -114,7 +176,7 @@ export default async function DashboardPage() {
           </Button>
         </section>
 
-        {!gmailConnected ? (
+        {!data.gmailConnected ? (
           <Alert variant="warning">
             <AlertTriangle className="size-4" />
             <AlertTitle>
@@ -133,12 +195,12 @@ export default async function DashboardPage() {
         <section className="grid gap-4 md:grid-cols-4">
           <StatCard
             label="Campaigns"
-            value={campaigns.length}
+            value={data.campaigns.length}
             icon={<MailPlus className="size-5 text-primary" />}
           />
           <StatCard
             label="Saved resumes"
-            value={resumes.length}
+            value={data.resumes.length}
             icon={<FileText className="size-5 text-primary" />}
           />
           <StatCard
@@ -163,7 +225,7 @@ export default async function DashboardPage() {
             </div>
             <CampaignHistory campaigns={history} />
           </div>
-          <ResumePanel resumes={resumes} />
+          <ResumePanel resumes={data.resumes} />
         </section>
       </div>
     </AppShell>

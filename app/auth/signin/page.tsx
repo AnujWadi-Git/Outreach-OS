@@ -10,6 +10,7 @@ import {
 import { GoogleSignInButton } from "@/components/layout/google-sign-in-button";
 import { LocalSignInButton } from "@/components/layout/local-sign-in-button";
 import {
+  authBypassEnabled,
   getCurrentUser,
   googleOAuthConfigured,
   googleOAuthCredentialsPresent,
@@ -18,7 +19,17 @@ import {
   ownerEmail,
 } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function SignInPage() {
+  if (
+    authBypassEnabled ||
+    process.env.STANDALONE_FRONTEND_ONLY === "true" ||
+    !process.env.DATABASE_URL
+  ) {
+    redirect("/");
+  }
+
   const user = await getCurrentUser();
 
   if (user) redirect("/");
