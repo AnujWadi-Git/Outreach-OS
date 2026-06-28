@@ -1,12 +1,27 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { NewCampaignForm } from "@/components/campaigns/new-campaign-form";
-import { getCurrentUser, getGmailConnection } from "@/lib/auth";
+import { StandaloneOutreachTool } from "@/components/campaigns/standalone-outreach-tool";
+import {
+  authBypassEnabled,
+  getCurrentUser,
+  getGmailConnection,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewCampaignPage() {
+  if (
+    authBypassEnabled ||
+    process.env.STANDALONE_FRONTEND_ONLY === "true" ||
+    !process.env.DATABASE_URL
+  ) {
+    return (
+      <StandaloneOutreachTool reason="Practical mode is active, so campaign creation happens in the browser with local saves." />
+    );
+  }
+
   const user = await getCurrentUser();
 
   if (!user) redirect("/auth/signin");

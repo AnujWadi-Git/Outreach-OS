@@ -71,7 +71,11 @@ type DashboardData =
     };
 
 async function loadDashboardData(): Promise<DashboardData> {
-  if (process.env.STANDALONE_FRONTEND_ONLY === "true" || !process.env.DATABASE_URL) {
+  if (
+    process.env.STANDALONE_FRONTEND_ONLY === "true" ||
+    authBypassEnabled ||
+    !process.env.DATABASE_URL
+  ) {
     return {
       status: "standalone",
       reason:

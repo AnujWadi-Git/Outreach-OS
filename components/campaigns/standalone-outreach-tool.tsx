@@ -72,6 +72,7 @@ type StandaloneCampaign = {
 };
 
 const storageKey = "outreach-os-standalone-campaigns";
+const selectedCampaignStorageKey = "outreach-os-standalone-selected-campaign";
 const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const titleWords = [
   "recruiter",
@@ -327,22 +328,43 @@ function loadStoredCampaigns() {
   }
 }
 
+function loadSelectedCampaignId() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage.getItem(selectedCampaignStorageKey);
+  } catch {
+    return null;
+  }
+}
+
 export function StandaloneOutreachTool({ reason }: { reason?: string }) {
   const [name, setName] = useState("Recruiter outreach campaign");
   const [jobDescription, setJobDescription] = useState("");
   const [rawContacts, setRawContacts] = useState("");
   const [campaigns, setCampaigns] =
     useState<StandaloneCampaign[]>(loadStoredCampaigns);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
+    loadSelectedCampaignId
+  );
 
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(campaigns));
   }, [campaigns]);
 
+  useEffect(() => {
+    if (selectedCampaignId) {
+      window.localStorage.setItem(selectedCampaignStorageKey, selectedCampaignId);
+    } else {
+      window.localStorage.removeItem(selectedCampaignStorageKey);
+    }
+  }, [selectedCampaignId]);
+
   const selectedCampaign = useMemo(
     () => campaigns.find((campaign) => campaign.id === selectedCampaignId) || campaigns[0],
     [campaigns, selectedCampaignId]
   );
+  const activeCampaignId = selectedCampaign?.id || selectedCampaignId;
 
   const previewContacts = useMemo(() => parseContacts(rawContacts), [rawContacts]);
 
@@ -364,6 +386,36 @@ export function StandaloneOutreachTool({ reason }: { reason?: string }) {
     };
     setCampaigns((current) => [campaign, ...current].slice(0, 12));
     setSelectedCampaignId(campaign.id);
+  }
+
+  function updateSelectedCampaign(
+    updater: (campaign: StandaloneCampaign) => StandaloneCampaign
+  ) {
+    setCampaigns((current) =>
+      current.map((campaign) =>
+        campaign.id === activeCampaignId ? updater(campaign) : campaign
+      )
+    );
+  }
+
+  function updateCampaignName(nextName: string) {
+    updateSelectedCampaign((campaign) => ({ ...campaign, name: nextName }));
+  }
+
+  function updateDraftField(
+    contactId: string,
+    field: keyof Pick<
+      StandaloneDraft,
+      "selectedSubject" | "body" | "followUp" | "hookSummary"
+    >,
+    value: string
+  ) {
+    updateSelectedCampaign((campaign) => ({
+      ...campaign,
+      drafts: campaign.drafts.map((draft) =>
+        draft.contactId === contactId ? { ...draft, [field]: value } : draft
+      ),
+    }));
   }
 
   function exportJson(campaign: StandaloneCampaign) {
@@ -612,7 +664,14 @@ export function StandaloneOutreachTool({ reason }: { reason?: string }) {
           <section className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold">{selectedCampaign.name}</h2>
+                <Label className="text-xs uppercase text-muted-foreground">
+                  Selected campaign
+                </Label>
+                <Input
+                  value={selectedCampaign.name}
+                  onChange={(event) => updateCampaignName(event.target.value)}
+                  className="mt-2 max-w-xl text-xl font-semibold"
+                />
                 <p className="text-sm text-muted-foreground">
                   {selectedCampaign.analysis.roleType} /{" "}
                   {selectedCampaign.analysis.companyName || "Company unknown"}
@@ -693,33 +752,86 @@ export function StandaloneOutreachTool({ reason }: { reason?: string }) {
                   <CardContent className="space-y-4 text-sm leading-6">
                     <div>
                       <p className="font-medium">Subject line options</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {draft.subjectOptions.map((subject) => (
-                          <Badge key={subject} variant="secondary">
-                            {subject}
-                          </Badge>
-                        ))}
+                      <div className="mt-2 space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {draft.subjectOptions.map((subject) => (
+                            <Badge key={subject} variant="secondary">
+                              {subject}
+                            </Badge>
+                          ))}
+                        </div>
+                        <Input
+                          value={draft.selectedSubject}
+                          onChange={(event) =>
+                            updateDraftField(
+                              draft.contactId,
+                              "selectedSubject",
+                              event.target.value
+                            )
+                          }
+                        />
                       </div>
                     </div>
                     <Separator />
                     <div>
                       <p className="font-medium">Main email</p>
-                      <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
-                        {draft.body}
-                      </p>
+                      <Textarea
+                        className="mt-2 min-h-44 whitespace-pre-wrap"
+                        value={draft.body}
+                        onChange={(event) =>
+                          updateDraftField(draft.contactId, "body", event.target.value)
+                        }
+                      />
                     </div>
                     <Separator />
                     <div>
                       <p className="font-medium">Follow-up email</p>
-                      <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
-                        {draft.followUp}
-                      </p>
+                      <Textarea
+                        className="mt-2 min-h-36 whitespace-pre-wrap"
+                        value={draft.followUp}
+                        onChange={(event) =>
+                          updateDraftField(
+                            draft.contactId,
+                            "followUp",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium">Hook summary</p>
+                      <Textarea
+                        className="mt-2 min-h-24"
+                        value={draft.hookSummary}
+                        onChange={(event) =>
+                          updateDraftField(
+                            draft.contactId,
+                            "hookSummary",
+                            event.target.value
+                          )
+                        }
+                      />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="success">generated</Badge>
                       <Badge variant="outline">
                         {Math.round(draft.confidence * 100)}% contact confidence
                       </Badge>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            [draft.selectedSubject, "", draft.body, "", draft.followUp].join(
+                              "\n"
+                            )
+                          )
+                        }
+                      >
+                        <Clipboard />
+                        Copy email
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

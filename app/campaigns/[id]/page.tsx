@@ -18,7 +18,12 @@ import {
 } from "@/components/campaigns/draft-preview-list";
 import { ParsedContactsTable } from "@/components/campaigns/parsed-contacts-table";
 import { StatusBadge } from "@/components/campaigns/status-badge";
-import { getCurrentUser, getGmailConnection } from "@/lib/auth";
+import { StandaloneOutreachTool } from "@/components/campaigns/standalone-outreach-tool";
+import {
+  authBypassEnabled,
+  getCurrentUser,
+  getGmailConnection,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
 
@@ -65,6 +70,16 @@ export default async function CampaignDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (
+    authBypassEnabled ||
+    process.env.STANDALONE_FRONTEND_ONLY === "true" ||
+    !process.env.DATABASE_URL
+  ) {
+    return (
+      <StandaloneOutreachTool reason="Practical mode is active, so campaign detail lives in the browser with local persistence." />
+    );
+  }
+
   const user = await getCurrentUser();
 
   if (!user) redirect("/auth/signin");
